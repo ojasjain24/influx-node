@@ -3,7 +3,7 @@ const request = require("request");
 const url = "https://api.covid19india.org/data.json";
 request({ url: url }, (error, response) => {
   data = JSON.parse(response.body)["cases_time_series"];
-
+  console.log(data);
   loadData();
 });
 
@@ -12,7 +12,7 @@ const { InfluxDB } = require("@influxdata/influxdb-client");
 const token =
   "dINTrFHP4dortLptY3OZMfaZo7bhGPXRMF4yy3Sh-uedDf2mP9_pxCV5BwQgiwSAUuhblr_V67eYCYWpIukJhw==";
 const org = "iudx";
-const bucket = "ojas7";
+const bucket = "ojas4";
 
 const client = new InfluxDB({ url: "http://localhost:8086", token: token });
 
@@ -26,32 +26,38 @@ var points = [];
 loadData = async () => {
   // var i =-1;
   try {
-    for (let i = 0; i < data.length; i++) {
-      // const point = new Point('mem').floatField('used_percent', 23.43234543)
-      points[i] = new Point("covid")
-        .floatField("cases", `${data?.[i]?.["dailyconfirmed"]}`)
-        .tag("TAG", "OZ")
-        .timestamp(new Date(data?.[i]?.["dateymd"]));
-    }
+    // for (let i = 0; i < data.length; i++) {
+    //   // const point = new Point('mem').floatField('used_percent', 23.43234543)
+    //   points[i] = new Point("covid")
+    //     .floatField("cases", `${data?.[i]?.["dailyconfirmed"]}`)
+    //     .tag("TAG", "OZ")
+    //     .timestamp(new Date(data?.[i]?.["dateymd"]).getDate());
+    // }
 
-    //  const rows = [...new Array(data.length)].map((r) => {
-    //   i++;
-    //   console.log(data?.[i]?.["dailyconfirmed"]);
-    //   return {
-    //     measurement: 'covid-cases',
-    //     tags: { host: 'localhost',
-    //     app: 'AppName',
-    //     Instance: 'Instance1878' },
-    //     fields: { cases : `${data?.[i]?.["dailyconfirmed"]}` },
-    //     timestamp: new Date(data?.[i]?.["dateymd"]),
-    //   };
-    // });
-    // writeApi.writePoint(points[0]);
+    const rows = data.map((x) => {
+      // i++;
+      // console.log(r?.["dailyconfirmed"]);
+      return {
+        measurement: "covid-cases",
+        fields: {
+          dailyconfirmed: Number(x.dailyconfirmed),
+          dailydeceased: Number(x.dailydeceased),
+          dailyrecovered: Number(x.dailyrecovered),
+          date: x.date,
+          totalconfirmed: Number(x.totalconfirmed),
+          totaldeceased: Number(x.totaldeceased),
+          totalrecovered: Number(x.totalrecovered),
+        },
+        timestamp: new Date(x.date).getTime(),
+      };
+    });
 
-    for (var j = 0; j < points.length; j++) {
-      writeApi.writePoint(points[j]);
-      console.log(points[j]);
-    }
+    writeApi.writePoints(rows);
+
+    // for (var j = 0; j < points.length; j++) {
+    //   writeApi.writePoint(points[j]);
+    //   // console.log(new Date(data?.[j]?.["dateymd"]).Date);
+    // }
 
     console.log("Data stored successfully!");
     writeApi
